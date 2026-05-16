@@ -1,0 +1,40 @@
+services:
+  bookright:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      DATABASE_URL: postgresql://bookright:${SERVICE_PASSWORD_POSTGRES}@postgres:5432/bookright
+      NEXTAUTH_SECRET: ${SERVICE_PASSWORD_NEXTAUTH}
+      NEXTAUTH_URL: ${NEXTAUTH_URL:-https://chatweb.com}
+      NEXT_PUBLIC_ROOT_DOMAIN: ${NEXT_PUBLIC_ROOT_DOMAIN:-chatweb.com}
+      ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY:-}
+      NODE_ENV: production
+    ports:
+      - "3000"
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://127.0.0.1:3000/api/health || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 30s
+
+  postgres:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_DB: bookright
+      POSTGRES_USER: bookright
+      POSTGRES_PASSWORD: ${SERVICE_PASSWORD_POSTGRES}
+    volumes:
+      - bookright_postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U bookright -d bookright"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+volumes:
+  bookright_postgres_data:
