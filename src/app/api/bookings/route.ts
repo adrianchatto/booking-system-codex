@@ -3,6 +3,7 @@ import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
 import { addMinutes } from 'date-fns'
+import { getInitialPublicBookingStatus } from '@/lib/booking-workflow'
 
 // GET /api/bookings?tenantSlug=xxx — returns bookings for a tenant
 export async function GET(req: NextRequest) {
@@ -104,6 +105,7 @@ export async function POST(req: NextRequest) {
       serviceId: service.id,
       startTime: bookingStart,
       endTime: bookingEnd,
+      status: getInitialPublicBookingStatus(),
       notes,
     },
     include: { customer: true, service: true },

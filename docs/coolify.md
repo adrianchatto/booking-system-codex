@@ -68,3 +68,18 @@ https://bright-windows.chatweb.com/admin/login
 ```
 
 Self-serve tenant signup should create a tenant owner, not a platform super admin. Platform super admin access remains reserved for the platform owner.
+
+## Booking Approval Workflow
+
+Customer bookings are created as `PENDING` requests. Tenant admins review them in the bookings dashboard, then approve or decline:
+
+```text
+PENDING -> CONFIRMED
+PENDING -> CANCELLED
+CONFIRMED -> COMPLETED
+CONFIRMED -> NO_SHOW
+CONFIRMED -> CANCELLED
+CANCELLED -> PENDING
+```
+
+The tenant dashboard shows a pending approval count so businesses can quickly see requests that need attention. Email/SMS notifications should be wired through a provider such as Resend or Twilio in a later slice.

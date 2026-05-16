@@ -4,7 +4,7 @@ import { redirect } from 'next/navigation'
 import { prisma } from '@/lib/prisma'
 import Sidebar from '@/components/admin/Sidebar'
 import { formatCurrency, formatDateTime } from '@/lib/utils'
-import { BookOpen, Users, TrendingUp, Clock, Calendar } from 'lucide-react'
+import { BookOpen, Users, TrendingUp, Clock, Calendar, AlertCircle } from 'lucide-react'
 import { startOfMonth, endOfMonth } from 'date-fns'
 import Link from 'next/link'
 
@@ -20,7 +20,7 @@ export default async function TenantDashboard({ params }: { params: { slug: stri
   const monthStart = startOfMonth(now)
   const monthEnd = endOfMonth(now)
 
-  const [tenant, bookingsThisMonth, upcomingToday, totalCustomers, recentBookings] = await Promise.all([
+  const [tenant, bookingsThisMonth, upcomingToday, pendingApprovals, totalCustomers, recentBookings] = await Promise.all([
     prisma.tenant.findUnique({ where: { id: tenantId }, include: { settings: true } }),
     prisma.booking.count({ where: { tenantId, startTime: { gte: monthStart, lte: monthEnd }, status: { in: ['CONFIRMED', 'COMPLETED'] } } }),
     prisma.booking.count({
@@ -30,6 +30,7 @@ export default async function TenantDashboard({ params }: { params: { slug: stri
         status: 'CONFIRMED',
       },
     }),
+    prisma.booking.count({ where: { tenantId, status: 'PENDING' } }),
     prisma.customer.count({ where: { tenantId } }),
     prisma.booking.findMany({
       where: { tenantId },
@@ -48,6 +49,7 @@ export default async function TenantDashboard({ params }: { params: { slug: stri
 
   const stats = [
     { label: 'Bookings This Month', value: bookingsThisMonth.toString(), icon: <BookOpen className="w-5 h-5" />, color: 'blue' },
+    { label: 'Pending Approval', value: pendingApprovals.toString(), icon: <AlertCircle className="w-5 h-5" />, color: 'yellow' },
     { label: 'Today\'s Appointments', value: upcomingToday.toString(), icon: <Calendar className="w-5 h-5" />, color: 'green' },
     { label: 'Total Customers', value: totalCustomers.toString(), icon: <Users className="w-5 h-5" />, color: 'purple' },
     { label: 'Revenue This Month', value: formatCurrency(revenueThisMonth), icon: <TrendingUp className="w-5 h-5" />, color: 'amber' },
@@ -58,6 +60,7 @@ export default async function TenantDashboard({ params }: { params: { slug: stri
     green: 'bg-green-50 text-green-600',
     purple: 'bg-purple-50 text-purple-600',
     amber: 'bg-amber-50 text-amber-600',
+    yellow: 'bg-yellow-50 text-yellow-700',
   }
 
   const statusColors: Record<string, string> = {
@@ -80,7 +83,7 @@ export default async function TenantDashboard({ params }: { params: { slug: stri
           </div>
 
           {/* Stats */}
-          <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
+          <div className="grid grid-cols-2 lg:grid-cols-5 gap-4 mb-8">
             {stats.map((stat) => (
               <div key={stat.label} className="bg-white rounded-2xl p-5 border border-gray-100 shadow-sm">
                 <div className={`w-9 h-9 rounded-lg flex items-center justify-center mb-3 ${colorMap[stat.color]}`}>

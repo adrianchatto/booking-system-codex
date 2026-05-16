@@ -37,15 +37,16 @@ export default function BookingsPage() {
     setLoading(false)
   }
 
-  async function updateStatus(id: string, status: string) {
+  async function runAction(id: string, action: string) {
     setUpdating(id)
     const res = await fetch(`/api/bookings/${id}`, {
       method: 'PATCH',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ status }),
+      body: JSON.stringify({ action }),
     })
     if (res.ok) {
-      setBookings((prev) => prev.map((b) => b.id === id ? { ...b, status: status as any } : b))
+      const updated = await res.json()
+      setBookings((prev) => prev.map((b) => b.id === id ? updated : b))
     }
     setUpdating(null)
   }
@@ -135,9 +136,27 @@ export default function BookingsPage() {
                               <Loader2 className="w-4 h-4 animate-spin text-gray-400" />
                             ) : (
                               <>
+                                {booking.status === 'PENDING' && (
+                                  <button
+                                    onClick={() => runAction(booking.id, 'approve')}
+                                    title="Approve"
+                                    className="p-1.5 rounded-lg text-green-600 hover:bg-green-50 transition-colors"
+                                  >
+                                    <CheckCircle2 className="w-4 h-4" />
+                                  </button>
+                                )}
+                                {booking.status === 'PENDING' && (
+                                  <button
+                                    onClick={() => runAction(booking.id, 'decline')}
+                                    title="Decline"
+                                    className="p-1.5 rounded-lg text-red-600 hover:bg-red-50 transition-colors"
+                                  >
+                                    <XCircle className="w-4 h-4" />
+                                  </button>
+                                )}
                                 {booking.status === 'CONFIRMED' && (
                                   <button
-                                    onClick={() => updateStatus(booking.id, 'COMPLETED')}
+                                    onClick={() => runAction(booking.id, 'complete')}
                                     title="Mark Complete"
                                     className="p-1.5 rounded-lg text-green-600 hover:bg-green-50 transition-colors"
                                   >
@@ -146,7 +165,7 @@ export default function BookingsPage() {
                                 )}
                                 {booking.status === 'CONFIRMED' && (
                                   <button
-                                    onClick={() => updateStatus(booking.id, 'NO_SHOW')}
+                                    onClick={() => runAction(booking.id, 'no_show')}
                                     title="Mark No Show"
                                     className="p-1.5 rounded-lg text-amber-600 hover:bg-amber-50 transition-colors"
                                   >
@@ -155,7 +174,7 @@ export default function BookingsPage() {
                                 )}
                                 {(booking.status === 'CONFIRMED' || booking.status === 'PENDING') && (
                                   <button
-                                    onClick={() => updateStatus(booking.id, 'CANCELLED')}
+                                    onClick={() => runAction(booking.id, 'cancel')}
                                     title="Cancel"
                                     className="p-1.5 rounded-lg text-red-600 hover:bg-red-50 transition-colors"
                                   >
@@ -164,7 +183,7 @@ export default function BookingsPage() {
                                 )}
                                 {booking.status === 'CANCELLED' && (
                                   <button
-                                    onClick={() => updateStatus(booking.id, 'CONFIRMED')}
+                                    onClick={() => runAction(booking.id, 'reinstate')}
                                     title="Reinstate"
                                     className="p-1.5 rounded-lg text-blue-600 hover:bg-blue-50 transition-colors"
                                   >
