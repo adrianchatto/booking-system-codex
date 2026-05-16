@@ -9,8 +9,8 @@ services:
     environment:
       DATABASE_URL: postgresql://bookright:${SERVICE_PASSWORD_POSTGRES}@postgres:5432/bookright
       NEXTAUTH_SECRET: ${SERVICE_PASSWORD_NEXTAUTH}
-      NEXTAUTH_URL: ${NEXTAUTH_URL:-https://chatweb.com}
-      NEXT_PUBLIC_ROOT_DOMAIN: ${NEXT_PUBLIC_ROOT_DOMAIN:-chatweb.com}
+      NEXTAUTH_URL: ${NEXTAUTH_URL:-https://bookingcodex.chattoweb.com}
+      NEXT_PUBLIC_ROOT_DOMAIN: ${NEXT_PUBLIC_ROOT_DOMAIN:-bookingcodex.chattoweb.com}
       ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY:-}
       NODE_ENV: production
     ports:
