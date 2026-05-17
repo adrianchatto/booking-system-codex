@@ -33,8 +33,8 @@ export default function SuperAdminLoginPage() {
           <div className="w-14 h-14 bg-blue-600 rounded-2xl flex items-center justify-center mx-auto mb-4">
             <Shield className="w-7 h-7 text-white" />
           </div>
-          <h1 className="text-2xl font-bold text-white">Platform Admin</h1>
-          <p className="text-gray-500 text-sm mt-1">Super administrator access only</p>
+          <h1 className="text-2xl font-bold text-white">Owner Admin</h1>
+          <p className="text-gray-500 text-sm mt-1">Create and manage client booking systems</p>
         </div>
         <form onSubmit={handleSubmit} className="bg-gray-900 border border-gray-800 rounded-2xl p-6 space-y-4">
           <div>
@@ -74,7 +74,7 @@ export default function SuperAdminLoginPage() {
           </button>
         </form>
         <p className="text-center text-xs text-gray-700 mt-6">
-          <a href="/" className="hover:text-gray-500 transition-colors">← Platform Home</a>
+          <a href="/" className="hover:text-gray-500 transition-colors">Back to operator console</a>
         </p>
       </div>
     </div>

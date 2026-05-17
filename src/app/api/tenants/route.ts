@@ -2,6 +2,11 @@ import { NextRequest, NextResponse } from 'next/server'
 import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
+import {
+  getDefaultTenantSettings,
+  getStarterServices,
+  validateTenantProvisioningInput,
+} from '@/lib/tenant-provisioning'
 import bcrypt from 'bcryptjs'
 
 export async function GET(req: NextRequest) {
@@ -29,24 +34,17 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
   }
 
-  const body = await req.json()
-  const { businessName, slug, type, adminEmail, adminName, adminPassword } = body
+  const result = validateTenantProvisioningInput(await req.json())
 
-  if (!businessName || !slug || !type || !adminEmail || !adminPassword) {
-    return NextResponse.json({ error: 'Missing required fields' }, { status: 400 })
+  if (!result.ok) {
+    return NextResponse.json({ error: result.errors[0], errors: result.errors }, { status: 400 })
   }
 
+  const { businessName, slug, type, adminEmail, adminName, adminPassword } = result.value
   const existing = await prisma.tenant.findUnique({ where: { slug } })
   if (existing) return NextResponse.json({ error: 'Slug already taken' }, { status: 409 })
 
   const hashedPw = await bcrypt.hash(adminPassword, 10)
-
-  const defaultSettings: Record<string, any> = {
-    WINDOW_CLEANER: { primaryColor: '#0EA5E9', secondaryColor: '#0369A1', accentColor: '#38BDF8', tagline: 'Professional window cleaning you can trust' },
-    HAIRDRESSER: { primaryColor: '#BE185D', secondaryColor: '#831843', accentColor: '#F9A8D4', tagline: 'Where style meets precision' },
-    PERSONAL_TRAINER: { primaryColor: '#DC2626', secondaryColor: '#7F1D1D', accentColor: '#F97316', tagline: 'Achieve your fitness goals' },
-    PLUMBER: { primaryColor: '#1D4ED8', secondaryColor: '#1E3A8A', accentColor: '#F97316', tagline: 'Fast, reliable, fixed right first time' },
-  }
 
   const tenant = await prisma.tenant.create({
     data: {
@@ -54,17 +52,23 @@ export async function POST(req: NextRequest) {
       slug,
       type,
       settings: {
-        create: { ...defaultSettings[type] },
+        create: getDefaultTenantSettings(type, businessName, adminEmail),
+      },
+      services: {
+        create: getStarterServices(type),
       },
       users: {
         create: {
           email: adminEmail,
-          name: adminName ?? adminEmail.split('@')[0],
+          name: adminName,
           password: hashedPw,
         },
       },
     },
-    include: { settings: true },
+    include: {
+      settings: true,
+      _count: { select: { bookings: true, customers: true } },
+    },
   })
 
   return NextResponse.json(tenant, { status: 201 })

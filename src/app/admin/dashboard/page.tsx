@@ -27,7 +27,7 @@ export default function SuperAdminDashboard() {
   const [toggling, setToggling] = useState<string | null>(null)
   const router = useRouter()
 
-  // New tenant form
+  // New business form
   const [form, setForm] = useState({
     businessName: '',
     slug: '',
@@ -100,8 +100,8 @@ export default function SuperAdminDashboard() {
             <Shield className="w-4 h-4 text-white" />
           </div>
           <div>
-            <p className="font-bold text-white text-sm">BookRight</p>
-            <p className="text-xs text-gray-500">Platform Admin</p>
+            <p className="font-bold text-white text-sm">Codex Booking System</p>
+            <p className="text-xs text-gray-500">Owner admin</p>
           </div>
         </div>
         <button
@@ -116,8 +116,8 @@ export default function SuperAdminDashboard() {
         {/* Stats */}
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
           {[
-            { icon: <Building2 className="w-5 h-5" />, label: 'Total Tenants', value: tenants.length, color: 'text-blue-400' },
-            { icon: <TrendingUp className="w-5 h-5" />, label: 'Active Tenants', value: activeTenants, color: 'text-green-400' },
+            { icon: <Building2 className="w-5 h-5" />, label: 'Business Accounts', value: tenants.length, color: 'text-blue-400' },
+            { icon: <TrendingUp className="w-5 h-5" />, label: 'Active Businesses', value: activeTenants, color: 'text-green-400' },
             { icon: <BookOpen className="w-5 h-5" />, label: 'Total Bookings', value: totalBookings, color: 'text-purple-400' },
             { icon: <Users className="w-5 h-5" />, label: 'Total Customers', value: totalCustomers, color: 'text-amber-400' },
           ].map((s) => (
@@ -129,15 +129,15 @@ export default function SuperAdminDashboard() {
           ))}
         </div>
 
-        {/* Tenants */}
+        {/* Business accounts */}
         <div className="bg-gray-900 border border-gray-800 rounded-2xl overflow-hidden">
           <div className="flex items-center justify-between px-6 py-4 border-b border-gray-800">
-            <h2 className="font-bold text-white">Tenants</h2>
+            <h2 className="font-bold text-white">Business accounts</h2>
             <button
               onClick={() => setShowNew(true)}
               className="flex items-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white text-sm font-semibold rounded-lg transition-colors"
             >
-              <Plus className="w-4 h-4" /> New Tenant
+              <Plus className="w-4 h-4" /> New Business
             </button>
           </div>
 
@@ -207,7 +207,7 @@ export default function SuperAdminDashboard() {
                   ))}
                   {tenants.length === 0 && (
                     <tr>
-                      <td colSpan={8} className="px-6 py-10 text-center text-gray-600 text-sm">No tenants yet — create the first one</td>
+                      <td colSpan={8} className="px-6 py-10 text-center text-gray-600 text-sm">No business accounts yet. Create the first one to make its booking site live.</td>
                     </tr>
                   )}
                 </tbody>
@@ -217,12 +217,12 @@ export default function SuperAdminDashboard() {
         </div>
       </main>
 
-      {/* New tenant modal */}
+      {/* New business modal */}
       {showNew && (
         <div className="fixed inset-0 bg-black/70 z-50 flex items-center justify-center p-4">
           <div className="bg-gray-900 border border-gray-800 rounded-2xl w-full max-w-md shadow-2xl">
             <div className="flex items-center justify-between px-6 py-4 border-b border-gray-800">
-              <h3 className="font-bold text-white">New Tenant</h3>
+              <h3 className="font-bold text-white">Create Business Account</h3>
               <button onClick={() => setShowNew(false)} className="p-1.5 text-gray-500 hover:text-white hover:bg-gray-800 rounded-lg">
                 <X className="w-4 h-4" />
               </button>
@@ -234,19 +234,19 @@ export default function SuperAdminDashboard() {
                   type="text"
                   value={form.businessName}
                   onChange={(e) => setForm((f) => ({ ...f, businessName: e.target.value, slug: slugify(e.target.value) }))}
-                  placeholder="e.g. Bright Windows"
+                  placeholder="e.g. Northside Windows"
                   className="w-full bg-gray-800 border border-gray-700 rounded-lg px-4 py-2.5 text-white text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 placeholder-gray-600"
                 />
               </div>
               <div>
-                <label className="block text-xs font-medium text-gray-400 mb-1.5">URL Slug</label>
+                <label className="block text-xs font-medium text-gray-400 mb-1.5">Booking URL</label>
                 <div className="flex items-center gap-2">
-                  <span className="text-gray-600 text-sm">/</span>
+                  <span className="text-gray-600 text-sm">bookingcodex.chattoweb.com/</span>
                   <input
                     type="text"
                     value={form.slug}
                     onChange={(e) => setForm((f) => ({ ...f, slug: slugify(e.target.value) }))}
-                    placeholder="bright-windows"
+                    placeholder="northside-windows"
                     className="flex-1 bg-gray-800 border border-gray-700 rounded-lg px-4 py-2.5 text-white text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 placeholder-gray-600 font-mono"
                   />
                 </div>
@@ -265,7 +265,7 @@ export default function SuperAdminDashboard() {
                 </select>
               </div>
               <div className="border-t border-gray-800 pt-4">
-                <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-3">Admin User</p>
+                <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-3">Client Admin User</p>
                 <div className="space-y-3">
                   <input
                     type="text"
@@ -301,7 +301,7 @@ export default function SuperAdminDashboard() {
                   className="flex-1 py-2.5 rounded-lg bg-blue-600 hover:bg-blue-700 text-white text-sm font-semibold transition-colors disabled:opacity-50 flex items-center justify-center gap-2"
                 >
                   {creating ? <Loader2 className="w-4 h-4 animate-spin" /> : <Check className="w-4 h-4" />}
-                  Create Tenant
+                  Create Business
                 </button>
               </div>
             </div>

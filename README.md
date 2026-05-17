@@ -1,229 +1,102 @@
-# BookRight — Multi-Tenant Booking Platform
+# Codex Booking System
 
-A full-stack proof of concept booking platform for local service businesses. Built with Next.js 14, Prisma, PostgreSQL, and Claude AI.
-
----
+A multi-tenant booking platform for local service businesses. The owner admin creates business accounts, gives each business its own booking site and tenant admin area, and manages account status from one private console.
 
 ## What It Does
 
-- **Multi-tenant** — each business gets their own URL (`/bright-windows`, `/shear-perfection`) with wildcard subdomain support for `*.chatweb.com`
-- **AI booking chatbot** — powered by Claude claude-haiku-4-5-20251001, embedded on every tenant site
-- **Four industry themes** — sharp, custom-designed for window cleaning, hairdressing, personal training, and plumbing
-- **Tenant admin** — each business manages bookings, calendar, customers, and their website content (CMS)
-- **Super admin** — platform owner can spin up new tenants, deactivate them, and see platform-wide stats
+- **Owner admin** at `/admin/login` for creating and managing business accounts.
+- **Business booking sites** at `/{slug}` and wildcard tenant subdomains when DNS is configured.
+- **Tenant admin** at `/{slug}/admin/login` for bookings, customers, services, calendar blocking, and CMS settings.
+- **Booking approval workflow** so incoming requests can stay pending until the business accepts them.
+- **Starter services** are generated for each new business type so a new account is immediately usable.
 
----
+## Production Bootstrap
 
-## Demo Credentials
+The seed command creates or updates only the platform owner account. It does not create demo businesses.
 
-**Super admin:** `superadmin@platform.com` / `SuperAdmin2024!`  
-→ Login at `/admin/login`
+Default owner login:
 
-| Tenant | Slug | Email | Password |
-|--------|------|-------|----------|
-| Bright Windows | `/bright-windows` | `admin@bright-windows.co.uk` | `BrightWindows2024!` |
-| Shear Perfection | `/shear-perfection` | `admin@shear-perfection.co.uk` | `ShearPerfection2024!` |
-| Peak Performance PT | `/peak-performance` | `admin@peak-performance.co.uk` | `PeakPerformance2024!` |
-| RapidFix Plumbing | `/rapidfix-plumbing` | `admin@rapidfix-plumbing.co.uk` | `RapidFix2024!` |
+```text
+superadmin@platform.com / SuperAdmin2024!
+```
 
-Tenant admin login at `/{slug}/admin/login`
+Override these with environment variables:
 
----
+```bash
+SUPER_ADMIN_EMAIL=owner@example.com
+SUPER_ADMIN_PASSWORD=use-a-long-secret-password
+SUPER_ADMIN_NAME="Platform Owner"
+```
 
 ## Local Development
 
-### 1. Clone and install
-
 ```bash
-git clone <your-repo-url>
-cd booking-system
 npm install
-```
-
-### 2. Set up environment variables
-
-```bash
 cp .env.example .env
-```
-
-Edit `.env` and fill in:
-- `DATABASE_URL` — your PostgreSQL connection string
-- `NEXTAUTH_SECRET` — run `openssl rand -base64 32` and paste the output
-- `ANTHROPIC_API_KEY` — from [console.anthropic.com](https://console.anthropic.com)
-
-### 3. Set up the database
-
-```bash
-# Push the schema (creates all tables)
 npm run db:push
-
-# Seed with demo data
 npm run db:seed
-```
-
-### 4. Run the dev server
-
-```bash
 npm run dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000)
-
----
+Open [http://localhost:3000](http://localhost:3000).
 
 ## Tests
-
-This Codex track is TDD-first. Run the current test suite with:
 
 ```bash
 npm test
 ```
 
-The first test coverage locks down tenant URL resolution for both path-based tenants and wildcard subdomains.
-
----
+Current tests cover tenant routing, booking approval transitions, and tenant provisioning rules.
 
 ## Coolify Deployment
 
 Coolify deployment notes live in [`docs/coolify.md`](docs/coolify.md).
 
-Key production settings:
-
-- Build pack: Dockerfile
-- Exposed port: `3000`
-- Health check: `/api/health`
-- Root domain: `chatweb.com`
-- Wildcard domain: `*.chatweb.com`
-
-Required environment variables:
-
-```bash
-DATABASE_URL=postgresql://USER:PASSWORD@HOST:5432/DATABASE
-NEXTAUTH_SECRET=generate-a-long-random-secret
-NEXTAUTH_URL=https://chatweb.com
-NEXT_PUBLIC_ROOT_DOMAIN=chatweb.com
-ANTHROPIC_API_KEY=optional-until-chatbot-is-enabled
-NODE_ENV=production
-```
-
-Tenant URLs can work both ways:
+For the current Cloudflare setup, Coolify should use the HTTP app domain so Cloudflare terminates public HTTPS:
 
 ```text
-https://chatweb.com/bright-windows
-https://bright-windows.chatweb.com
-https://bright-windows.chatweb.com/admin/login
+http://bookingcodex.chattoweb.com
 ```
 
----
-
-## Deploying to Render
-
-### Step 1 — Push to GitHub
+The compose startup command applies the Prisma schema, seeds the platform owner account, and starts Next.js:
 
 ```bash
-git init
-git add .
-git commit -m "Initial commit"
-git branch -M main
-git remote add origin https://github.com/yourusername/bookright.git
-git push -u origin main
+npx prisma db push && npm run db:seed && node server.js
 ```
-
-### Step 2 — Create a new Render project
-
-1. Go to [render.com](https://render.com) and log in
-2. Click **New** → **Blueprint**
-3. Connect your GitHub repository
-4. Render will detect `render.yaml` and configure everything automatically
-
-### Step 3 — Set environment variables
-
-In your Render web service settings, add:
-- `ANTHROPIC_API_KEY` — your Claude API key
-
-Everything else (`DATABASE_URL`, `NEXTAUTH_SECRET`, `NEXTAUTH_URL`) is handled automatically by `render.yaml`.
-
-### Step 4 — Deploy
-
-Render will build and deploy automatically. The first deploy runs `db:push` and seeds the database.
-
-**Important:** After the first deploy, remove `npm run db:seed` from the build command to avoid re-seeding on every deploy:
-
-```yaml
-buildCommand: npm install && npx prisma generate && npx prisma db push && npm run build
-```
-
----
 
 ## Project Structure
 
-```
+```text
 src/
-├── app/
-│   ├── page.tsx                    # Platform marketing homepage
-│   ├── admin/                      # Super admin portal
-│   │   ├── login/page.tsx
-│   │   └── dashboard/page.tsx
-│   ├── [slug]/                     # Tenant public sites
-│   │   ├── page.tsx                # Loads correct theme
-│   │   └── admin/                  # Tenant admin portal
-│   │       ├── login/page.tsx
-│   │       └── dashboard/
-│   │           ├── page.tsx        # Overview
-│   │           ├── bookings/       # Booking management
-│   │           ├── calendar/       # Week view + block slots
-│   │           ├── customers/      # Customer database
-│   │           └── settings/       # CMS + services
-│   └── api/
-│       ├── auth/[...nextauth]/     # NextAuth
-│       ├── chat/                   # Claude chatbot (streaming)
-│       ├── bookings/               # Booking CRUD
-│       ├── tenants/                # Tenant management
-│       ├── services/               # Service management
-│       ├── customers/              # Customer records
-│       ├── availability/           # Time slot availability
-│       └── blocked-slots/          # Calendar blocking
-├── components/
-│   ├── ChatBot.tsx                 # Floating chat widget
-│   ├── BookingModal.tsx            # Manual booking flow
-│   └── themes/
-│       ├── WindowCleanerTheme.tsx
-│       ├── HairdresserTheme.tsx
-│       ├── PersonalTrainerTheme.tsx
-│       └── PlumberTheme.tsx
-├── lib/
-│   ├── prisma.ts                   # Prisma singleton
-│   ├── auth.ts                     # NextAuth config
-│   └── utils.ts                    # Helpers
-└── types/index.ts
+  app/
+    page.tsx                  # Private operator gateway
+    admin/                    # Owner admin
+    [slug]/                   # Business booking sites and tenant admin
+    api/                      # Auth, tenants, bookings, customers, services
+  components/
+    admin/                    # Tenant admin UI components
+    themes/                   # Customer-facing booking site themes
+  lib/
+    booking-workflow.ts       # Booking status transitions
+    tenant-provisioning.ts    # Business onboarding defaults
+    tenant-routing.ts         # Path and subdomain routing
 ```
 
----
+## Adding a Business
 
-## Adding a New Tenant
-
-Via the super admin dashboard (`/admin/login`):
-1. Click **New Tenant**
-2. Enter business name, URL slug, type, and admin credentials
-3. Hit **Create** — the tenant is live immediately
-
-Or via the API:
-```bash
-curl -X POST /api/tenants \
-  -H 'Content-Type: application/json' \
-  -d '{"businessName":"My Business","slug":"my-business","type":"PLUMBER","adminEmail":"admin@my-business.com","adminPassword":"password123"}'
-```
-
----
+1. Log in at `/admin/login`.
+2. Open the owner dashboard.
+3. Click **New Business**.
+4. Enter the business name, URL slug, business type, and client admin credentials.
+5. The business site is live immediately at `/{slug}`.
 
 ## Tech Stack
 
 | Layer | Technology |
-|-------|-----------|
-| Framework | Next.js 14 (App Router) |
+| --- | --- |
+| App | Next.js 14 |
 | Database | PostgreSQL via Prisma |
-| Auth | NextAuth.js (JWT) |
-| AI | Anthropic Claude claude-haiku-4-5-20251001 |
+| Auth | NextAuth.js |
 | Styling | Tailwind CSS |
 | Icons | Lucide React |
 | Deployment | Coolify / Docker |

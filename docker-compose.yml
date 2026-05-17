@@ -12,6 +12,9 @@ services:
       NEXTAUTH_URL: https://bookingcodex.chattoweb.com
       NEXT_PUBLIC_ROOT_DOMAIN: bookingcodex.chattoweb.com
       ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY:-}
+      SUPER_ADMIN_EMAIL: ${SUPER_ADMIN_EMAIL:-superadmin@platform.com}
+      SUPER_ADMIN_PASSWORD: ${SUPER_ADMIN_PASSWORD:-SuperAdmin2024!}
+      SUPER_ADMIN_NAME: ${SUPER_ADMIN_NAME:-Platform Admin}
       NODE_ENV: production
     ports:
       - "3000"
