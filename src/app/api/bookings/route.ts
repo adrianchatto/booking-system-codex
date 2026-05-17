@@ -40,7 +40,7 @@ export async function GET(req: NextRequest) {
   return NextResponse.json(bookings)
 }
 
-// POST /api/bookings — public, used by chatbot and booking form
+// POST /api/bookings — public, used by the booking form
 export async function POST(req: NextRequest) {
   const body = await req.json()
   const { tenantSlug, serviceId, customerName, customerEmail, customerPhone, startTime, notes } = body

@@ -4,7 +4,6 @@ import { useState } from 'react'
 import Image from 'next/image'
 import { Star, Clock, Phone, Mail, MapPin, Instagram, Scissors } from 'lucide-react'
 import { formatCurrency } from '@/lib/utils'
-import ChatBot from '@/components/ChatBot'
 import BookingModal from '@/components/BookingModal'
 import { TenantWithSettings } from '@/types'
 
@@ -265,8 +264,6 @@ export default function HairdresserTheme({ tenant }: Props) {
           onClose={() => setShowBooking(false)}
         />
       )}
-
-      <ChatBot tenantSlug={tenant.slug} businessName={tenant.businessName} primaryColor={primary} />
     </div>
   )
 }

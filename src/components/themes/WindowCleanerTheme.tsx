@@ -4,7 +4,6 @@ import { useState } from 'react'
 import Image from 'next/image'
 import { CheckCircle, Shield, Clock, Star, Phone, Mail, MapPin, Droplets, Building2, Home, Wind } from 'lucide-react'
 import { formatCurrency } from '@/lib/utils'
-import ChatBot from '@/components/ChatBot'
 import BookingModal from '@/components/BookingModal'
 import { TenantWithSettings } from '@/types'
 
@@ -320,12 +319,6 @@ export default function WindowCleanerTheme({ tenant }: Props) {
           onClose={() => setShowBooking(false)}
         />
       )}
-
-      <ChatBot
-        tenantSlug={tenant.slug}
-        businessName={tenant.businessName}
-        primaryColor={primary}
-      />
     </div>
   )
 }
