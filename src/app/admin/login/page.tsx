@@ -2,7 +2,6 @@
 
 import { useState } from 'react'
 import { signIn } from 'next-auth/react'
-import { useRouter } from 'next/navigation'
 import { Eye, EyeOff, Loader2, Shield } from 'lucide-react'
 
 export default function SuperAdminLoginPage() {
@@ -11,18 +10,22 @@ export default function SuperAdminLoginPage() {
   const [showPw, setShowPw] = useState(false)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
-  const router = useRouter()
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
     setLoading(true)
     setError('')
-    const result = await signIn('super-admin', { email, password, redirect: false })
+    const result = await signIn('super-admin', {
+      email,
+      password,
+      callbackUrl: '/admin/dashboard',
+      redirect: false,
+    })
     setLoading(false)
     if (result?.ok) {
-      router.push('/admin/dashboard')
+      window.location.assign('/admin/dashboard')
     } else {
-      setError('Invalid credentials.')
+      setError(result?.error ? `Sign in failed: ${result.error}` : 'Invalid credentials.')
     }
   }
 

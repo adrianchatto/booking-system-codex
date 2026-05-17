@@ -2,7 +2,7 @@
 
 import { useState } from 'react'
 import { signIn } from 'next-auth/react'
-import { useRouter, useParams } from 'next/navigation'
+import { useParams } from 'next/navigation'
 import { Eye, EyeOff, Loader2, Droplets } from 'lucide-react'
 
 export default function TenantLoginPage() {
@@ -11,7 +11,6 @@ export default function TenantLoginPage() {
   const [showPw, setShowPw] = useState(false)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
-  const router = useRouter()
   const { slug } = useParams() as { slug: string }
 
   async function handleSubmit(e: React.FormEvent) {
@@ -22,13 +21,14 @@ export default function TenantLoginPage() {
       email,
       password,
       tenantSlug: slug,
+      callbackUrl: `/${slug}/admin/dashboard`,
       redirect: false,
     })
     setLoading(false)
     if (result?.ok) {
-      router.push(`/${slug}/admin/dashboard`)
+      window.location.assign(`/${slug}/admin/dashboard`)
     } else {
-      setError('Invalid email or password.')
+      setError(result?.error ? `Sign in failed: ${result.error}` : 'Invalid email or password.')
     }
   }
 
