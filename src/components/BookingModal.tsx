@@ -27,7 +27,8 @@ export default function BookingModal({ tenantSlug, services, primaryColor, onClo
   const [phone, setPhone] = useState('')
   const [notes, setNotes] = useState('')
   const [submitting, setSubmitting] = useState(false)
-  const [confirmed, setConfirmed] = useState(false)
+  const [requestSent, setRequestSent] = useState(false)
+  const [bookingStatus, setBookingStatus] = useState<string | null>(null)
   const [error, setError] = useState('')
 
   const next7Days = Array.from({ length: 14 }, (_, i) => {
@@ -80,7 +81,9 @@ export default function BookingModal({ tenantSlug, services, primaryColor, onClo
         const data = await res.json()
         setError(data.error ?? 'Something went wrong')
       } else {
-        setConfirmed(true)
+        const booking = await res.json()
+        setBookingStatus(booking.status ?? null)
+        setRequestSent(true)
       }
     } catch {
       setError('Unable to complete booking. Please try again.')
@@ -91,18 +94,26 @@ export default function BookingModal({ tenantSlug, services, primaryColor, onClo
 
   const btnStyle = { backgroundColor: primaryColor }
 
-  if (confirmed) {
+  if (requestSent) {
+    const needsApproval = bookingStatus === 'PENDING'
+
     return (
       <div className="fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-4 animate-fade-in">
         <div className="bg-white rounded-2xl p-8 max-w-sm w-full text-center shadow-2xl">
           <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
             <CheckCircle2 className="w-8 h-8 text-green-600" />
           </div>
-          <h3 className="text-xl font-bold text-gray-900 mb-2">You&apos;re booked in!</h3>
+          <h3 className="text-xl font-bold text-gray-900 mb-2">
+            {needsApproval ? 'Request sent' : 'You&apos;re booked in'}
+          </h3>
           <p className="text-gray-500 text-sm mb-1">
             {selectedService?.name} on {format(parseISO(selectedDate), 'EEEE dd MMMM')} at {selectedTime}
           </p>
-          <p className="text-gray-400 text-xs mb-6">A confirmation has been sent to {email}</p>
+          <p className="text-gray-400 text-xs mb-6">
+            {needsApproval
+              ? `The business will review your request and contact you at ${email} once it has been approved.`
+              : `Your booking has been confirmed. The business can contact you at ${email} if needed.`}
+          </p>
           <button
             onClick={onClose}
             className="w-full text-white py-3 rounded-xl font-semibold transition-opacity hover:opacity-90"
