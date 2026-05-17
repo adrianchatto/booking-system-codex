@@ -15,16 +15,20 @@ describe('booking approval workflow', () => {
 
   it('maps admin approval actions to booking statuses', () => {
     assert.equal(getStatusForAction('approve'), 'CONFIRMED')
-    assert.equal(getStatusForAction('decline'), 'CANCELLED')
+    assert.equal(getStatusForAction('mark_pending'), 'PENDING')
     assert.equal(getStatusForAction('cancel'), 'CANCELLED')
     assert.equal(getStatusForAction('complete'), 'COMPLETED')
     assert.equal(getStatusForAction('no_show'), 'NO_SHOW')
-    assert.equal(getStatusForAction('reinstate'), 'PENDING')
   })
 
   it('allows approving or declining pending requests', () => {
     assert.equal(canTransitionBookingStatus('PENDING', 'CONFIRMED'), true)
     assert.equal(canTransitionBookingStatus('PENDING', 'CANCELLED'), true)
+  })
+
+  it('allows confirmed or cancelled bookings to be put back to pending', () => {
+    assert.equal(canTransitionBookingStatus('CONFIRMED', 'PENDING'), true)
+    assert.equal(canTransitionBookingStatus('CANCELLED', 'PENDING'), true)
   })
 
   it('does not allow finished bookings to be changed', () => {
@@ -44,4 +48,3 @@ describe('booking approval workflow', () => {
     )
   })
 })
-

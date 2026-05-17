@@ -5,7 +5,7 @@ import { useParams } from 'next/navigation'
 import Sidebar from '@/components/admin/Sidebar'
 import { formatDateTime, formatCurrency } from '@/lib/utils'
 import { BookingWithRelations } from '@/types'
-import { Loader2, Phone, Mail, CheckCircle2, XCircle, RotateCcw, AlertTriangle } from 'lucide-react'
+import { Loader2, Phone, Mail, CheckCircle2, XCircle, RotateCcw } from 'lucide-react'
 
 const STATUS_COLORS: Record<string, string> = {
   CONFIRMED: 'bg-blue-100 text-blue-700 border-blue-200',
@@ -145,31 +145,13 @@ export default function BookingsPage() {
                                     <CheckCircle2 className="w-4 h-4" />
                                   </button>
                                 )}
-                                {booking.status === 'PENDING' && (
-                                  <button
-                                    onClick={() => runAction(booking.id, 'decline')}
-                                    title="Decline"
-                                    className="p-1.5 rounded-lg text-red-600 hover:bg-red-50 transition-colors"
-                                  >
-                                    <XCircle className="w-4 h-4" />
-                                  </button>
-                                )}
                                 {booking.status === 'CONFIRMED' && (
                                   <button
-                                    onClick={() => runAction(booking.id, 'complete')}
-                                    title="Mark Complete"
-                                    className="p-1.5 rounded-lg text-green-600 hover:bg-green-50 transition-colors"
+                                    onClick={() => runAction(booking.id, 'mark_pending')}
+                                    title="Put Back To Pending"
+                                    className="p-1.5 rounded-lg text-yellow-700 hover:bg-yellow-50 transition-colors"
                                   >
-                                    <CheckCircle2 className="w-4 h-4" />
-                                  </button>
-                                )}
-                                {booking.status === 'CONFIRMED' && (
-                                  <button
-                                    onClick={() => runAction(booking.id, 'no_show')}
-                                    title="Mark No Show"
-                                    className="p-1.5 rounded-lg text-amber-600 hover:bg-amber-50 transition-colors"
-                                  >
-                                    <AlertTriangle className="w-4 h-4" />
+                                    <RotateCcw className="w-4 h-4" />
                                   </button>
                                 )}
                                 {(booking.status === 'CONFIRMED' || booking.status === 'PENDING') && (
@@ -183,9 +165,9 @@ export default function BookingsPage() {
                                 )}
                                 {booking.status === 'CANCELLED' && (
                                   <button
-                                    onClick={() => runAction(booking.id, 'reinstate')}
-                                    title="Reinstate"
-                                    className="p-1.5 rounded-lg text-blue-600 hover:bg-blue-50 transition-colors"
+                                    onClick={() => runAction(booking.id, 'mark_pending')}
+                                    title="Put Back To Pending"
+                                    className="p-1.5 rounded-lg text-yellow-700 hover:bg-yellow-50 transition-colors"
                                   >
                                     <RotateCcw className="w-4 h-4" />
                                   </button>

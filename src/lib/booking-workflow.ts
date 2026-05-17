@@ -5,20 +5,19 @@ export type BookingStatus =
   | 'COMPLETED'
   | 'NO_SHOW'
 
-export type BookingAction = 'approve' | 'decline' | 'cancel' | 'complete' | 'no_show' | 'reinstate'
+export type BookingAction = 'approve' | 'mark_pending' | 'cancel' | 'complete' | 'no_show'
 
 const ACTION_STATUS: Record<BookingAction, BookingStatus> = {
   approve: 'CONFIRMED',
-  decline: 'CANCELLED',
+  mark_pending: 'PENDING',
   cancel: 'CANCELLED',
   complete: 'COMPLETED',
   no_show: 'NO_SHOW',
-  reinstate: 'PENDING',
 }
 
 const ALLOWED_TRANSITIONS: Record<BookingStatus, BookingStatus[]> = {
   PENDING: ['CONFIRMED', 'CANCELLED'],
-  CONFIRMED: ['CANCELLED', 'COMPLETED', 'NO_SHOW'],
+  CONFIRMED: ['PENDING', 'CANCELLED', 'COMPLETED', 'NO_SHOW'],
   CANCELLED: ['PENDING'],
   COMPLETED: [],
   NO_SHOW: [],
@@ -45,4 +44,3 @@ export function assertBookingStatusTransition(from: BookingStatus, to: BookingSt
     throw new Error(`Cannot move booking from ${from} to ${to}`)
   }
 }
-
