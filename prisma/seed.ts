@@ -7,6 +7,12 @@ const prisma = new PrismaClient()
 async function main() {
   console.log('🌱 Seeding database...')
 
+  const existingTenants = await prisma.tenant.count()
+  if (existingTenants > 0 && process.env.RESET_DEMO_DATA !== 'true') {
+    console.log('✅ Demo data already exists; skipping seed')
+    return
+  }
+
   // Clean up existing data
   await prisma.booking.deleteMany()
   await prisma.blockedSlot.deleteMany()
