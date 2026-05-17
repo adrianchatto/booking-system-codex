@@ -89,6 +89,13 @@ model TenantSettings {
   galleryImages   String[]
   metaTitle       String?
   metaDescription String?
+  smtpHost        String?
+  smtpPort        Int?
+  smtpSecure      Boolean  @default(false)
+  smtpUsername    String?
+  smtpPasswordEncrypted String?
+  smtpFromEmail   String?
+  smtpFromName    String?
 }
 
 model TenantUser {

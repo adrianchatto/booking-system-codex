@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react'
 import { useParams } from 'next/navigation'
 import Sidebar from '@/components/admin/Sidebar'
-import { Loader2, Save, Plus, Trash2, CheckCircle2 } from 'lucide-react'
+import { Loader2, Save, Plus, Trash2, CheckCircle2, Mail } from 'lucide-react'
 import { DAY_LABELS, DAYS_OF_WEEK } from '@/lib/utils'
 
 interface Service {
@@ -34,6 +34,15 @@ interface Settings {
   heroImageUrl: string
   galleryImages: string[]
   openingHours: Record<string, OpeningDay>
+  smtpHost: string
+  smtpPort: number
+  smtpSecure: boolean
+  smtpUsername: string
+  smtpPassword: string
+  smtpPasswordSet?: boolean
+  smtpFromEmail: string
+  smtpFromName: string
+  emailStatus?: { configured: boolean; missing: string[] }
 }
 
 const defaultOpeningHours: Record<string, OpeningDay> = {
@@ -63,6 +72,15 @@ export default function SettingsPage() {
     heroImageUrl: '',
     galleryImages: [''],
     openingHours: defaultOpeningHours,
+    smtpHost: '',
+    smtpPort: 587,
+    smtpSecure: false,
+    smtpUsername: '',
+    smtpPassword: '',
+    smtpPasswordSet: false,
+    smtpFromEmail: '',
+    smtpFromName: '',
+    emailStatus: { configured: false, missing: [] },
   })
   const [services, setServices] = useState<Service[]>([])
   const [loading, setLoading] = useState(true)
@@ -104,6 +122,15 @@ export default function SettingsPage() {
             heroImageUrl: tenant.settings.heroImageUrl ?? '',
             galleryImages: tenant.settings.galleryImages?.length ? tenant.settings.galleryImages : [''],
             openingHours: (tenant.settings.openingHours as Record<string, OpeningDay>) ?? defaultOpeningHours,
+            smtpHost: tenant.settings.smtpHost ?? '',
+            smtpPort: tenant.settings.smtpPort ?? 587,
+            smtpSecure: Boolean(tenant.settings.smtpSecure),
+            smtpUsername: tenant.settings.smtpUsername ?? '',
+            smtpPassword: '',
+            smtpPasswordSet: Boolean(tenant.settings.smtpPasswordSet),
+            smtpFromEmail: tenant.settings.smtpFromEmail ?? '',
+            smtpFromName: tenant.settings.smtpFromName ?? '',
+            emailStatus: tenant.settings.emailStatus ?? { configured: false, missing: [] },
           })
         }
       }
@@ -233,6 +260,61 @@ export default function SettingsPage() {
                 <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1.5">City</label>
                 <input type="text" value={settings.city} onChange={(e) => setSettings((s) => ({ ...s, city: e.target.value }))} className="w-full border border-gray-200 rounded-lg px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" />
               </div>
+            </div>
+          </section>
+
+          {/* Brand colours */}
+          <section className="bg-white rounded-2xl border border-gray-100 shadow-sm p-6 mb-6">
+            <div className="flex items-start justify-between gap-4 mb-4">
+              <div>
+                <h2 className="font-bold text-gray-900">Email & SMTP</h2>
+                <p className="text-sm text-gray-500 mt-1">Used when sending emails to customers from the Customers page.</p>
+              </div>
+              <span className={`inline-flex items-center gap-1.5 text-xs font-semibold px-2.5 py-1 rounded-full ${settings.emailStatus?.configured ? 'bg-green-100 text-green-700' : 'bg-amber-100 text-amber-700'}`}>
+                <Mail className="w-3 h-3" />
+                {settings.emailStatus?.configured ? 'Configured' : 'Needs setup'}
+              </span>
+            </div>
+            {!settings.emailStatus?.configured && settings.emailStatus?.missing?.length ? (
+              <p className="text-xs text-amber-700 bg-amber-50 border border-amber-100 rounded-lg px-3 py-2 mb-4">
+                Missing: {settings.emailStatus.missing.join(', ')}
+              </p>
+            ) : null}
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div>
+                <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1.5">SMTP Host</label>
+                <input type="text" value={settings.smtpHost} onChange={(e) => setSettings((s) => ({ ...s, smtpHost: e.target.value }))} placeholder="smtp.yourprovider.com" className="w-full border border-gray-200 rounded-lg px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" />
+              </div>
+              <div>
+                <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1.5">SMTP Port</label>
+                <input type="number" value={settings.smtpPort} onChange={(e) => setSettings((s) => ({ ...s, smtpPort: Number(e.target.value) }))} placeholder="587" className="w-full border border-gray-200 rounded-lg px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" />
+              </div>
+              <div>
+                <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1.5">SMTP Username</label>
+                <input type="text" value={settings.smtpUsername} onChange={(e) => setSettings((s) => ({ ...s, smtpUsername: e.target.value }))} placeholder="username or email" className="w-full border border-gray-200 rounded-lg px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" />
+              </div>
+              <div>
+                <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1.5">SMTP Password</label>
+                <input type="password" value={settings.smtpPassword} onChange={(e) => setSettings((s) => ({ ...s, smtpPassword: e.target.value }))} placeholder={settings.smtpPasswordSet ? 'Password saved; enter a new one to replace it' : 'SMTP password'} className="w-full border border-gray-200 rounded-lg px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" />
+              </div>
+              <div>
+                <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1.5">From Email</label>
+                <input type="email" value={settings.smtpFromEmail} onChange={(e) => setSettings((s) => ({ ...s, smtpFromEmail: e.target.value }))} placeholder="bookings@yourdomain.com" className="w-full border border-gray-200 rounded-lg px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" />
+              </div>
+              <div>
+                <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1.5">From Name</label>
+                <input type="text" value={settings.smtpFromName} onChange={(e) => setSettings((s) => ({ ...s, smtpFromName: e.target.value }))} placeholder={businessName} className="w-full border border-gray-200 rounded-lg px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" />
+              </div>
+              <label className="sm:col-span-2 flex items-center gap-2 text-sm text-gray-700">
+                <input type="checkbox" checked={settings.smtpSecure} onChange={(e) => setSettings((s) => ({ ...s, smtpSecure: e.target.checked }))} className="rounded border-gray-300 text-blue-600 focus:ring-blue-500" />
+                Use SSL/TLS immediately, usually port 465. Leave off for STARTTLS, usually port 587.
+              </label>
+            </div>
+            <div className="mt-4 rounded-xl bg-gray-50 border border-gray-100 p-4 text-sm text-gray-600">
+              <p className="font-semibold text-gray-900 mb-2">Typical SMTP details</p>
+              <p><span className="font-medium">Host:</span> your email provider SMTP host, for example `smtp.gmail.com`, `smtp.office365.com`, or your domain host SMTP server.</p>
+              <p><span className="font-medium">Port:</span> 587 for STARTTLS, or 465 for SSL/TLS.</p>
+              <p><span className="font-medium">Username/password:</span> normally the mailbox email and an app password/API password.</p>
             </div>
           </section>
 

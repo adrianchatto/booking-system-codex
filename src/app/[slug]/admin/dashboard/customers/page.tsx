@@ -5,7 +5,7 @@ import { useParams } from 'next/navigation'
 import Sidebar from '@/components/admin/Sidebar'
 import { formatDate, formatCurrency } from '@/lib/utils'
 import { CustomerWithBookings } from '@/types'
-import { Loader2, Phone, Mail, ChevronDown, ChevronRight, Search } from 'lucide-react'
+import { Loader2, Phone, Mail, ChevronDown, ChevronRight, Search, Save, X, Pencil, Send } from 'lucide-react'
 
 export default function CustomersPage() {
   const { slug } = useParams() as { slug: string }
@@ -13,6 +13,13 @@ export default function CustomersPage() {
   const [loading, setLoading] = useState(true)
   const [expanded, setExpanded] = useState<string | null>(null)
   const [search, setSearch] = useState('')
+  const [editingId, setEditingId] = useState<string | null>(null)
+  const [editForm, setEditForm] = useState({ name: '', email: '', phone: '', notes: '' })
+  const [savingCustomer, setSavingCustomer] = useState(false)
+  const [emailCustomer, setEmailCustomer] = useState<CustomerWithBookings | null>(null)
+  const [emailForm, setEmailForm] = useState({ subject: '', message: '' })
+  const [sendingEmail, setSendingEmail] = useState(false)
+  const [emailStatus, setEmailStatus] = useState('')
 
   useEffect(() => {
     fetch('/api/customers')
@@ -27,6 +34,69 @@ export default function CustomersPage() {
       c.email.toLowerCase().includes(search.toLowerCase()) ||
       (c.phone ?? '').includes(search)
   )
+
+  function startEdit(customer: CustomerWithBookings) {
+    setEditingId(customer.id)
+    setEditForm({
+      name: customer.name,
+      email: customer.email,
+      phone: customer.phone ?? '',
+      notes: customer.notes ?? '',
+    })
+  }
+
+  async function saveCustomer(id: string) {
+    setSavingCustomer(true)
+    const res = await fetch('/api/customers', {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ id, ...editForm }),
+    })
+    setSavingCustomer(false)
+
+    if (res.ok) {
+      setCustomers((prev) => prev.map((customer) => (
+        customer.id === id ? { ...customer, ...editForm } : customer
+      )))
+      setEditingId(null)
+    }
+  }
+
+  function openEmail(customer: CustomerWithBookings) {
+    setEmailCustomer(customer)
+    setEmailStatus('')
+    setEmailForm({
+      subject: '',
+      message: `Hi ${customer.name},\n\n`,
+    })
+  }
+
+  async function sendEmail() {
+    if (!emailCustomer) return
+    setSendingEmail(true)
+    setEmailStatus('')
+    const res = await fetch('/api/email/customer', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        customerId: emailCustomer.id,
+        subject: emailForm.subject,
+        message: emailForm.message,
+      }),
+    })
+    const data = await res.json().catch(() => ({}))
+    setSendingEmail(false)
+
+    if (res.ok) {
+      setEmailStatus('Email sent.')
+      setTimeout(() => {
+        setEmailCustomer(null)
+        setEmailStatus('')
+      }, 1200)
+    } else {
+      setEmailStatus(data.error ?? 'Email could not be sent.')
+    }
+  }
 
   return (
     <div className="flex min-h-screen bg-gray-50">
@@ -106,6 +176,54 @@ export default function CustomersPage() {
 
                     {isOpen && (
                       <div className="border-t border-gray-100 px-5 py-4">
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-5">
+                          <div>
+                            <p className="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-2">Customer Details</p>
+                            {editingId === customer.id ? (
+                              <div className="space-y-3">
+                                <input
+                                  value={editForm.name}
+                                  onChange={(e) => setEditForm((f) => ({ ...f, name: e.target.value }))}
+                                  className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                />
+                                <input
+                                  type="email"
+                                  value={editForm.email}
+                                  onChange={(e) => setEditForm((f) => ({ ...f, email: e.target.value }))}
+                                  className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                />
+                                <input
+                                  type="tel"
+                                  value={editForm.phone}
+                                  onChange={(e) => setEditForm((f) => ({ ...f, phone: e.target.value }))}
+                                  placeholder="Phone"
+                                  className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                />
+                              </div>
+                            ) : (
+                              <div className="space-y-1 text-sm text-gray-600">
+                                <p><span className="font-medium text-gray-900">Name:</span> {customer.name}</p>
+                                <p><span className="font-medium text-gray-900">Email:</span> {customer.email}</p>
+                                <p><span className="font-medium text-gray-900">Phone:</span> {customer.phone || 'Not set'}</p>
+                                <p><span className="font-medium text-gray-900">Customer since:</span> {formatDate(customer.createdAt)}</p>
+                              </div>
+                            )}
+                          </div>
+                          <div>
+                            <p className="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-2">Notes</p>
+                            {editingId === customer.id ? (
+                              <textarea
+                                value={editForm.notes}
+                                onChange={(e) => setEditForm((f) => ({ ...f, notes: e.target.value }))}
+                                rows={6}
+                                placeholder="Preferences, access notes, allergies, parking instructions..."
+                                className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none"
+                              />
+                            ) : (
+                              <p className="text-sm text-gray-600 whitespace-pre-wrap min-h-[4rem]">{customer.notes || 'No notes saved yet.'}</p>
+                            )}
+                          </div>
+                        </div>
                         <p className="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-3">Booking History</p>
                         {customer.bookings.length === 0 ? (
                           <p className="text-sm text-gray-400">No bookings yet</p>
@@ -133,14 +251,32 @@ export default function CustomersPage() {
                           </div>
                         )}
                         <div className="mt-4 pt-3 border-t border-gray-100 flex gap-3">
+                          {editingId === customer.id ? (
+                            <>
+                              <button
+                                onClick={() => saveCustomer(customer.id)}
+                                disabled={savingCustomer}
+                                className="flex items-center gap-2 px-3 py-2 bg-blue-600 hover:bg-blue-700 rounded-lg text-sm font-medium text-white transition-colors disabled:opacity-50"
+                              >
+                                {savingCustomer ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Save className="w-3.5 h-3.5" />} Save
+                              </button>
+                              <button onClick={() => setEditingId(null)} className="flex items-center gap-2 px-3 py-2 bg-gray-50 hover:bg-gray-100 rounded-lg text-sm font-medium text-gray-700 transition-colors">
+                                <X className="w-3.5 h-3.5" /> Cancel
+                              </button>
+                            </>
+                          ) : (
+                            <button onClick={() => startEdit(customer)} className="flex items-center gap-2 px-3 py-2 bg-gray-50 hover:bg-gray-100 rounded-lg text-sm font-medium text-gray-700 transition-colors">
+                              <Pencil className="w-3.5 h-3.5" /> Edit Details
+                            </button>
+                          )}
                           {customer.phone && (
                             <a href={`tel:${customer.phone}`} className="flex items-center gap-2 px-3 py-2 bg-gray-50 hover:bg-gray-100 rounded-lg text-sm font-medium text-gray-700 transition-colors">
                               <Phone className="w-3.5 h-3.5" /> Call
                             </a>
                           )}
-                          <a href={`mailto:${customer.email}`} className="flex items-center gap-2 px-3 py-2 bg-gray-50 hover:bg-gray-100 rounded-lg text-sm font-medium text-gray-700 transition-colors">
+                          <button onClick={() => openEmail(customer)} className="flex items-center gap-2 px-3 py-2 bg-gray-50 hover:bg-gray-100 rounded-lg text-sm font-medium text-gray-700 transition-colors">
                             <Mail className="w-3.5 h-3.5" /> Email
-                          </a>
+                          </button>
                         </div>
                       </div>
                     )}
@@ -154,6 +290,50 @@ export default function CustomersPage() {
           )}
         </div>
       </main>
+      {emailCustomer && (
+        <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
+          <div className="bg-white rounded-2xl shadow-xl border border-gray-100 w-full max-w-lg">
+            <div className="flex items-center justify-between px-5 py-4 border-b border-gray-100">
+              <div>
+                <h2 className="font-bold text-gray-900">Send Email</h2>
+                <p className="text-xs text-gray-500">{emailCustomer.name} · {emailCustomer.email}</p>
+              </div>
+              <button onClick={() => setEmailCustomer(null)} className="p-1.5 rounded-lg text-gray-400 hover:text-gray-700 hover:bg-gray-50">
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+            <div className="p-5 space-y-4">
+              <input
+                value={emailForm.subject}
+                onChange={(e) => setEmailForm((f) => ({ ...f, subject: e.target.value }))}
+                placeholder="Subject"
+                className="w-full border border-gray-200 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+              />
+              <textarea
+                value={emailForm.message}
+                onChange={(e) => setEmailForm((f) => ({ ...f, message: e.target.value }))}
+                rows={9}
+                placeholder="Message"
+                className="w-full border border-gray-200 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none"
+              />
+              {emailStatus && <p className={`text-sm ${emailStatus === 'Email sent.' ? 'text-green-600' : 'text-red-600'}`}>{emailStatus}</p>}
+              <div className="flex justify-end gap-3">
+                <button onClick={() => setEmailCustomer(null)} className="px-4 py-2 rounded-lg border border-gray-200 text-sm font-medium text-gray-600 hover:bg-gray-50">
+                  Cancel
+                </button>
+                <button
+                  onClick={sendEmail}
+                  disabled={sendingEmail}
+                  className="flex items-center gap-2 px-4 py-2 rounded-lg bg-blue-600 text-white text-sm font-semibold hover:bg-blue-700 disabled:opacity-50"
+                >
+                  {sendingEmail ? <Loader2 className="w-4 h-4 animate-spin" /> : <Send className="w-4 h-4" />}
+                  Send Email
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }

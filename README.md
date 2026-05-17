@@ -8,6 +8,7 @@ A multi-tenant booking platform for local service businesses. The owner admin cr
 - **Business booking sites** at `/{slug}` and wildcard tenant subdomains when DNS is configured.
 - **Tenant admin** at `/{slug}/admin/login` for bookings, customers, services, calendar blocking, and CMS settings.
 - **Booking approval workflow** so incoming requests can stay pending until the business accepts them.
+- **Customer management and SMTP email** so tenant admins can edit customer details, keep notes, and send emails through their own mailbox.
 - **Mock billing capture** on business creation: £35/month after a one-month free trial, storing only card brand, last four, expiry, and postcode.
 - **Starter services** are generated for each new business type so a new account is immediately usable.
 

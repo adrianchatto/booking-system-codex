@@ -2,6 +2,8 @@ import { NextRequest, NextResponse } from 'next/server'
 import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
+import { normalizeSmtpSettings, redactSmtpSettings } from '@/lib/email-settings'
+import { encryptSecret } from '@/lib/secret-crypto'
 
 export async function GET(req: NextRequest, { params }: { params: { id: string } }) {
   const session = await getServerSession(authOptions)
@@ -22,7 +24,14 @@ export async function GET(req: NextRequest, { params }: { params: { id: string }
     return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
   }
 
-  return NextResponse.json(tenant)
+  return NextResponse.json({
+    ...tenant,
+    settings: tenant.settings ? {
+      ...tenant.settings,
+      ...redactSmtpSettings(tenant.settings),
+      smtpPasswordEncrypted: undefined,
+    } : tenant.settings,
+  })
 }
 
 export async function PATCH(req: NextRequest, { params }: { params: { id: string } }) {
@@ -40,18 +49,34 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
   const body = await req.json()
 
   // Separate tenant-level fields from settings fields
-  const { status, businessName, settings: settingsData, ...rest } = body
+  const { status, businessName, settings: settingsData } = body
+  let preparedSettings = settingsData
+
+  if (settingsData) {
+    const smtp = normalizeSmtpSettings(settingsData)
+    const { smtpPassword, smtpPasswordSet, emailStatus, ...settingsWithoutPassword } = settingsData
+    preparedSettings = {
+      ...settingsWithoutPassword,
+      smtpHost: smtp.smtpHost || null,
+      smtpPort: smtp.smtpPort || null,
+      smtpSecure: smtp.smtpSecure,
+      smtpUsername: smtp.smtpUsername || null,
+      smtpFromEmail: smtp.smtpFromEmail || null,
+      smtpFromName: smtp.smtpFromName || null,
+      ...(smtp.smtpPassword ? { smtpPasswordEncrypted: encryptSecret(smtp.smtpPassword) } : {}),
+    }
+  }
 
   const updated = await prisma.tenant.update({
     where: { id: params.id },
     data: {
       ...(businessName ? { businessName } : {}),
       ...(status ? { status } : {}),
-      ...(settingsData ? {
+      ...(preparedSettings ? {
         settings: {
           upsert: {
-            create: settingsData,
-            update: settingsData,
+            create: preparedSettings,
+            update: preparedSettings,
           },
         },
       } : {}),
@@ -59,5 +84,12 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
     include: { settings: true },
   })
 
-  return NextResponse.json(updated)
+  return NextResponse.json({
+    ...updated,
+    settings: updated.settings ? {
+      ...updated.settings,
+      ...redactSmtpSettings(updated.settings),
+      smtpPasswordEncrypted: undefined,
+    } : updated.settings,
+  })
 }

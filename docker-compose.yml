@@ -9,6 +9,7 @@ services:
     environment:
       DATABASE_URL: postgresql://bookright:${SERVICE_PASSWORD_POSTGRES}@postgres:5432/bookright
       NEXTAUTH_SECRET: ${SERVICE_PASSWORD_NEXTAUTH}
+      EMAIL_ENCRYPTION_KEY: ${SERVICE_PASSWORD_NEXTAUTH}
       NEXTAUTH_URL: https://bookingcodex.chattoweb.com
       NEXT_PUBLIC_ROOT_DOMAIN: bookingcodex.chattoweb.com
       SUPER_ADMIN_EMAIL: ${SUPER_ADMIN_EMAIL:-superadmin@platform.com}
