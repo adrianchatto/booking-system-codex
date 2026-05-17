@@ -7,7 +7,7 @@ import Link from 'next/link'
 import { formatDate, slugify, tenantTypeLabel } from '@/lib/utils'
 import {
   Building2, Plus, LogOut, ExternalLink, ToggleLeft, ToggleRight, Loader2,
-  Shield, Users, BookOpen, TrendingUp, X, Check
+  Shield, Users, BookOpen, TrendingUp, X, Check, CreditCard
 } from 'lucide-react'
 
 interface Tenant {
@@ -17,7 +17,29 @@ interface Tenant {
   type: string
   status: string
   createdAt: string
+  billing?: {
+    status: string
+    monthlyPricePence: number
+    currency: string
+    trialEndsAt: string
+    cardBrand: string
+    cardLast4: string
+  } | null
   _count: { bookings: number; customers: number }
+}
+
+const emptyBusinessForm = {
+  businessName: '',
+  slug: '',
+  type: 'WINDOW_CLEANER',
+  adminEmail: '',
+  adminName: '',
+  adminPassword: '',
+  cardholderName: '',
+  cardNumber: '',
+  cardExpiry: '',
+  cardCvc: '',
+  billingPostcode: '',
 }
 
 export default function SuperAdminDashboard() {
@@ -28,14 +50,7 @@ export default function SuperAdminDashboard() {
   const router = useRouter()
 
   // New business form
-  const [form, setForm] = useState({
-    businessName: '',
-    slug: '',
-    type: 'WINDOW_CLEANER',
-    adminEmail: '',
-    adminName: '',
-    adminPassword: '',
-  })
+  const [form, setForm] = useState(emptyBusinessForm)
   const [creating, setCreating] = useState(false)
   const [createError, setCreateError] = useState('')
 
@@ -64,7 +79,7 @@ export default function SuperAdminDashboard() {
   }
 
   async function createTenant() {
-    if (!form.businessName || !form.slug || !form.adminEmail || !form.adminPassword) {
+    if (!form.businessName || !form.slug || !form.adminEmail || !form.adminPassword || !form.cardholderName || !form.cardNumber || !form.cardExpiry || !form.cardCvc) {
       setCreateError('All fields are required')
       return
     }
@@ -80,7 +95,7 @@ export default function SuperAdminDashboard() {
       const tenant = await res.json()
       setTenants((prev) => [tenant, ...prev])
       setShowNew(false)
-      setForm({ businessName: '', slug: '', type: 'WINDOW_CLEANER', adminEmail: '', adminName: '', adminPassword: '' })
+      setForm(emptyBusinessForm)
     } else {
       const data = await res.json()
       setCreateError(data.error ?? 'Failed to create tenant')
@@ -153,6 +168,7 @@ export default function SuperAdminDashboard() {
                     <th className="text-left font-medium text-gray-500 px-4 py-3">Slug</th>
                     <th className="text-left font-medium text-gray-500 px-4 py-3">Bookings</th>
                     <th className="text-left font-medium text-gray-500 px-4 py-3">Customers</th>
+                    <th className="text-left font-medium text-gray-500 px-4 py-3">Billing</th>
                     <th className="text-left font-medium text-gray-500 px-4 py-3">Created</th>
                     <th className="text-left font-medium text-gray-500 px-4 py-3">Status</th>
                     <th className="text-left font-medium text-gray-500 px-4 py-3">Actions</th>
@@ -170,6 +186,22 @@ export default function SuperAdminDashboard() {
                       </td>
                       <td className="px-4 py-4 text-gray-300">{tenant._count.bookings}</td>
                       <td className="px-4 py-4 text-gray-300">{tenant._count.customers}</td>
+                      <td className="px-4 py-4">
+                        {tenant.billing ? (
+                          <div className="space-y-1">
+                            <span className="inline-flex items-center gap-1.5 text-xs font-medium px-2 py-1 rounded-full bg-blue-900/40 text-blue-300">
+                              <CreditCard className="w-3 h-3" />
+                              {tenant.billing.status}
+                            </span>
+                            <p className="text-xs text-gray-500">
+                              £{(tenant.billing.monthlyPricePence / 100).toFixed(0)}/mo from {formatDate(tenant.billing.trialEndsAt)}
+                            </p>
+                            <p className="text-xs text-gray-600">{tenant.billing.cardBrand} ending {tenant.billing.cardLast4}</p>
+                          </div>
+                        ) : (
+                          <span className="text-xs text-gray-600">Not set</span>
+                        )}
+                      </td>
                       <td className="px-4 py-4 text-gray-400">{formatDate(tenant.createdAt)}</td>
                       <td className="px-4 py-4">
                         <span className={`inline-flex items-center gap-1.5 text-xs font-medium px-2 py-1 rounded-full ${tenant.status === 'ACTIVE' ? 'bg-green-900/40 text-green-400' : 'bg-gray-800 text-gray-500'}`}>
@@ -207,7 +239,7 @@ export default function SuperAdminDashboard() {
                   ))}
                   {tenants.length === 0 && (
                     <tr>
-                      <td colSpan={8} className="px-6 py-10 text-center text-gray-600 text-sm">No business accounts yet. Create the first one to make its booking site live.</td>
+                      <td colSpan={9} className="px-6 py-10 text-center text-gray-600 text-sm">No business accounts yet. Create the first one to make its booking site live.</td>
                     </tr>
                   )}
                 </tbody>
@@ -220,7 +252,7 @@ export default function SuperAdminDashboard() {
       {/* New business modal */}
       {showNew && (
         <div className="fixed inset-0 bg-black/70 z-50 flex items-center justify-center p-4">
-          <div className="bg-gray-900 border border-gray-800 rounded-2xl w-full max-w-md shadow-2xl">
+          <div className="bg-gray-900 border border-gray-800 rounded-2xl w-full max-w-2xl shadow-2xl max-h-[90vh] overflow-y-auto">
             <div className="flex items-center justify-between px-6 py-4 border-b border-gray-800">
               <h3 className="font-bold text-white">Create Business Account</h3>
               <button onClick={() => setShowNew(false)} className="p-1.5 text-gray-500 hover:text-white hover:bg-gray-800 rounded-lg">
@@ -289,6 +321,59 @@ export default function SuperAdminDashboard() {
                     className="w-full bg-gray-800 border border-gray-700 rounded-lg px-4 py-2.5 text-white text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 placeholder-gray-600"
                   />
                 </div>
+              </div>
+              <div className="border-t border-gray-800 pt-4">
+                <div className="flex items-start justify-between gap-4 mb-4">
+                  <div>
+                    <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide">Billing</p>
+                    <p className="text-sm text-white mt-1">£35/month after a 1 month free trial</p>
+                  </div>
+                  <div className="rounded-lg bg-blue-950/60 border border-blue-900/70 px-3 py-2 text-right">
+                    <p className="text-xs text-blue-300">First month</p>
+                    <p className="text-sm font-semibold text-white">Free</p>
+                  </div>
+                </div>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  <input
+                    type="text"
+                    placeholder="Cardholder name"
+                    value={form.cardholderName}
+                    onChange={(e) => setForm((f) => ({ ...f, cardholderName: e.target.value }))}
+                    className="sm:col-span-2 w-full bg-gray-800 border border-gray-700 rounded-lg px-4 py-2.5 text-white text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 placeholder-gray-600"
+                  />
+                  <input
+                    type="text"
+                    inputMode="numeric"
+                    placeholder="Card number"
+                    value={form.cardNumber}
+                    onChange={(e) => setForm((f) => ({ ...f, cardNumber: e.target.value }))}
+                    className="sm:col-span-2 w-full bg-gray-800 border border-gray-700 rounded-lg px-4 py-2.5 text-white text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 placeholder-gray-600"
+                  />
+                  <input
+                    type="text"
+                    inputMode="numeric"
+                    placeholder="MM/YY"
+                    value={form.cardExpiry}
+                    onChange={(e) => setForm((f) => ({ ...f, cardExpiry: e.target.value }))}
+                    className="w-full bg-gray-800 border border-gray-700 rounded-lg px-4 py-2.5 text-white text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 placeholder-gray-600"
+                  />
+                  <input
+                    type="password"
+                    inputMode="numeric"
+                    placeholder="CVC"
+                    value={form.cardCvc}
+                    onChange={(e) => setForm((f) => ({ ...f, cardCvc: e.target.value }))}
+                    className="w-full bg-gray-800 border border-gray-700 rounded-lg px-4 py-2.5 text-white text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 placeholder-gray-600"
+                  />
+                  <input
+                    type="text"
+                    placeholder="Billing postcode"
+                    value={form.billingPostcode}
+                    onChange={(e) => setForm((f) => ({ ...f, billingPostcode: e.target.value }))}
+                    className="sm:col-span-2 w-full bg-gray-800 border border-gray-700 rounded-lg px-4 py-2.5 text-white text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 placeholder-gray-600"
+                  />
+                </div>
+                <p className="text-xs text-gray-600 mt-3">For this MVP, the card is validated and mocked. Only card brand, last four, expiry, and billing postcode are saved.</p>
               </div>
               {createError && <p className="text-red-400 text-sm">{createError}</p>}
               <div className="flex gap-3 pt-2">

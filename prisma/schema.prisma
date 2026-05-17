@@ -27,6 +27,7 @@ model Tenant {
   bookings     Booking[]
   blockedSlots BlockedSlot[]
   users        TenantUser[]
+  billing      BillingSubscription?
   createdAt    DateTime       @default(now())
   updatedAt    DateTime       @updatedAt
 }
@@ -41,6 +42,32 @@ enum TenantType {
 enum TenantStatus {
   ACTIVE
   INACTIVE
+}
+
+model BillingSubscription {
+  id                String        @id @default(cuid())
+  tenantId          String        @unique
+  tenant            Tenant        @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  status            BillingStatus @default(TRIALING)
+  monthlyPricePence Int           @default(3500)
+  currency          String        @default("GBP")
+  trialEndsAt       DateTime
+  nextBillingAt     DateTime
+  cardholderName    String
+  cardBrand         String
+  cardLast4         String
+  cardExpMonth      Int
+  cardExpYear       Int
+  billingPostcode   String?
+  createdAt         DateTime      @default(now())
+  updatedAt         DateTime      @updatedAt
+}
+
+enum BillingStatus {
+  TRIALING
+  ACTIVE
+  PAST_DUE
+  CANCELLED
 }
 
 model TenantSettings {

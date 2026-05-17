@@ -3,6 +3,7 @@ import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
 import {
+  BILLING_PLAN,
   getDefaultTenantSettings,
   getStarterServices,
   validateTenantProvisioningInput,
@@ -19,6 +20,7 @@ export async function GET(req: NextRequest) {
   const tenants = await prisma.tenant.findMany({
     include: {
       settings: true,
+      billing: true,
       _count: { select: { bookings: true, customers: true } },
     },
     orderBy: { createdAt: 'desc' },
@@ -40,11 +42,13 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: result.errors[0], errors: result.errors }, { status: 400 })
   }
 
-  const { businessName, slug, type, adminEmail, adminName, adminPassword } = result.value
+  const { businessName, slug, type, adminEmail, adminName, adminPassword, paymentMethod } = result.value
   const existing = await prisma.tenant.findUnique({ where: { slug } })
   if (existing) return NextResponse.json({ error: 'Slug already taken' }, { status: 409 })
 
   const hashedPw = await bcrypt.hash(adminPassword, 10)
+  const trialEndsAt = new Date()
+  trialEndsAt.setMonth(trialEndsAt.getMonth() + BILLING_PLAN.trialMonths)
 
   const tenant = await prisma.tenant.create({
     data: {
@@ -57,6 +61,21 @@ export async function POST(req: NextRequest) {
       services: {
         create: getStarterServices(type),
       },
+      billing: {
+        create: {
+          status: 'TRIALING',
+          monthlyPricePence: BILLING_PLAN.monthlyPricePence,
+          currency: BILLING_PLAN.currency,
+          trialEndsAt,
+          nextBillingAt: trialEndsAt,
+          cardholderName: paymentMethod.cardholderName,
+          cardBrand: paymentMethod.cardBrand,
+          cardLast4: paymentMethod.cardLast4,
+          cardExpMonth: paymentMethod.cardExpMonth,
+          cardExpYear: paymentMethod.cardExpYear,
+          billingPostcode: paymentMethod.billingPostcode,
+        },
+      },
       users: {
         create: {
           email: adminEmail,
@@ -67,6 +86,7 @@ export async function POST(req: NextRequest) {
     },
     include: {
       settings: true,
+      billing: true,
       _count: { select: { bookings: true, customers: true } },
     },
   })

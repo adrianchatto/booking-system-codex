@@ -1,6 +1,7 @@
 import test from 'node:test'
 import assert from 'node:assert/strict'
 import {
+  BILLING_PLAN,
   getDefaultTenantSettings,
   getStarterServices,
   validateTenantProvisioningInput,
@@ -13,6 +14,11 @@ test('tenant provisioning normalizes valid business onboarding input', () => {
     adminEmail: ' OWNER@Example.COM ',
     adminName: '',
     adminPassword: 'long-enough-password',
+    cardholderName: 'Northside Windows Ltd',
+    cardNumber: '4242 4242 4242 4242',
+    cardExpiry: '12/34',
+    cardCvc: '123',
+    billingPostcode: 'SW1A 1AA',
   })
 
   assert.equal(result.ok, true)
@@ -20,6 +26,11 @@ test('tenant provisioning normalizes valid business onboarding input', () => {
   assert.equal(result.value.slug, 'northside-windows')
   assert.equal(result.value.adminEmail, 'owner@example.com')
   assert.equal(result.value.adminName, 'owner')
+  assert.equal(result.value.paymentMethod.cardBrand, 'Visa')
+  assert.equal(result.value.paymentMethod.cardLast4, '4242')
+  assert.equal(result.value.paymentMethod.cardExpMonth, 12)
+  assert.equal(result.value.paymentMethod.cardExpYear, 2034)
+  assert.equal(result.value.paymentMethod.billingPostcode, 'SW1A 1AA')
 })
 
 test('tenant provisioning rejects incomplete business setup', () => {
@@ -29,6 +40,10 @@ test('tenant provisioning rejects incomplete business setup', () => {
     type: 'COFFEE_SHOP',
     adminEmail: 'not-an-email',
     adminPassword: 'short',
+    cardholderName: '',
+    cardNumber: '1234',
+    cardExpiry: '13/20',
+    cardCvc: '12',
   })
 
   assert.equal(result.ok, false)
@@ -36,6 +51,16 @@ test('tenant provisioning rejects incomplete business setup', () => {
   assert.match(result.errors.join('\n'), /Business type is not supported/)
   assert.match(result.errors.join('\n'), /valid admin email/)
   assert.match(result.errors.join('\n'), /at least 10 characters/)
+  assert.match(result.errors.join('\n'), /Cardholder name is required/)
+  assert.match(result.errors.join('\n'), /valid card number/)
+  assert.match(result.errors.join('\n'), /valid future expiry/)
+  assert.match(result.errors.join('\n'), /valid CVC/)
+})
+
+test('billing plan gives every new business one month free before the monthly charge', () => {
+  assert.equal(BILLING_PLAN.monthlyPricePence, 3500)
+  assert.equal(BILLING_PLAN.currency, 'GBP')
+  assert.equal(BILLING_PLAN.trialMonths, 1)
 })
 
 test('starter services make a new tenant immediately bookable', () => {

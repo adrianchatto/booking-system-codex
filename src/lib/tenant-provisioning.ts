@@ -7,6 +7,11 @@ export type TenantProvisioningInput = {
   adminEmail?: string
   adminName?: string
   adminPassword?: string
+  cardholderName?: string
+  cardNumber?: string
+  cardExpiry?: string
+  cardCvc?: string
+  billingPostcode?: string
 }
 
 export type StarterService = {
@@ -14,6 +19,21 @@ export type StarterService = {
   description: string
   duration: number
   price: number
+}
+
+export type MockPaymentMethod = {
+  cardholderName: string
+  cardBrand: string
+  cardLast4: string
+  cardExpMonth: number
+  cardExpYear: number
+  billingPostcode: string
+}
+
+export const BILLING_PLAN = {
+  monthlyPricePence: 3500,
+  currency: 'GBP',
+  trialMonths: 1,
 }
 
 const SUPPORTED_TYPES = new Set<SupportedTenantType>([
@@ -38,6 +58,72 @@ function toSlug(text: string) {
     .toLowerCase()
     .replace(/[^a-z0-9]+/g, '-')
     .replace(/(^-|-$)/g, '')
+}
+
+function normalizeCardNumber(cardNumber?: string) {
+  return cardNumber?.replace(/\D/g, '') ?? ''
+}
+
+function passesLuhn(cardNumber: string) {
+  let sum = 0
+  let shouldDouble = false
+
+  for (let i = cardNumber.length - 1; i >= 0; i -= 1) {
+    let digit = Number(cardNumber[i])
+    if (shouldDouble) {
+      digit *= 2
+      if (digit > 9) digit -= 9
+    }
+    sum += digit
+    shouldDouble = !shouldDouble
+  }
+
+  return sum % 10 === 0
+}
+
+function getCardBrand(cardNumber: string) {
+  if (/^4/.test(cardNumber)) return 'Visa'
+  if (/^(5[1-5]|2[2-7])/.test(cardNumber)) return 'Mastercard'
+  if (/^3[47]/.test(cardNumber)) return 'American Express'
+  return 'Card'
+}
+
+function parseCardExpiry(cardExpiry?: string, now = new Date()) {
+  const match = cardExpiry?.trim().match(/^(\d{1,2})\s*\/\s*(\d{2}|\d{4})$/)
+  if (!match) return null
+
+  const month = Number(match[1])
+  const rawYear = Number(match[2])
+  const year = rawYear < 100 ? 2000 + rawYear : rawYear
+  if (month < 1 || month > 12) return null
+
+  const expiryBoundary = new Date(year, month, 1)
+  const currentMonth = new Date(now.getFullYear(), now.getMonth(), 1)
+  if (expiryBoundary <= currentMonth) return null
+
+  return { month, year }
+}
+
+function validateMockPaymentMethod(input: TenantProvisioningInput, errors: string[]): MockPaymentMethod {
+  const cardholderName = input.cardholderName?.trim() ?? ''
+  const billingPostcode = input.billingPostcode?.trim().toUpperCase() ?? ''
+  const cardNumber = normalizeCardNumber(input.cardNumber)
+  const expiry = parseCardExpiry(input.cardExpiry)
+  const cvc = input.cardCvc?.trim() ?? ''
+
+  if (!cardholderName) errors.push('Cardholder name is required')
+  if (cardNumber.length < 12 || cardNumber.length > 19 || !passesLuhn(cardNumber)) errors.push('Enter a valid card number')
+  if (!expiry) errors.push('Enter a valid future expiry date')
+  if (!/^\d{3,4}$/.test(cvc)) errors.push('Enter a valid CVC')
+
+  return {
+    cardholderName,
+    cardBrand: cardNumber ? getCardBrand(cardNumber) : 'Card',
+    cardLast4: cardNumber.slice(-4),
+    cardExpMonth: expiry?.month ?? 0,
+    cardExpYear: expiry?.year ?? 0,
+    billingPostcode,
+  }
 }
 
 export const STARTER_SERVICES: Record<SupportedTenantType, StarterService[]> = {
@@ -67,6 +153,7 @@ export function validateTenantProvisioningInput(input: TenantProvisioningInput) 
   const adminPassword = input.adminPassword ?? ''
   const slug = toSlug(input.slug || businessName)
   const type = input.type as SupportedTenantType
+  const paymentMethod = validateMockPaymentMethod(input, errors)
 
   if (!businessName) errors.push('Business name is required')
   if (!slug) errors.push('URL slug is required')
@@ -85,6 +172,7 @@ export function validateTenantProvisioningInput(input: TenantProvisioningInput) 
       adminEmail,
       adminName,
       adminPassword,
+      paymentMethod,
     },
   }
 }
