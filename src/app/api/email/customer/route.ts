@@ -4,6 +4,7 @@ import { authOptions } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
 import { getEmailConfigStatus } from '@/lib/email-settings'
 import { decryptSecret } from '@/lib/secret-crypto'
+import { sendSmtpMail } from '@/lib/smtp-client'
 
 export async function POST(req: NextRequest) {
   const session = await getServerSession(authOptions)
@@ -35,26 +36,17 @@ export async function POST(req: NextRequest) {
     }, { status: 400 })
   }
 
-  const nodemailer = await import('nodemailer')
-  const transporter = nodemailer.createTransport({
+  await sendSmtpMail({
     host: tenant.settings.smtpHost!,
     port: tenant.settings.smtpPort!,
     secure: tenant.settings.smtpSecure,
-    auth: {
-      user: tenant.settings.smtpUsername!,
-      pass: decryptSecret(tenant.settings.smtpPasswordEncrypted!),
-    },
-  })
-
-  await transporter.sendMail({
-    from: {
-      name: tenant.settings.smtpFromName || tenant.businessName,
-      address: tenant.settings.smtpFromEmail!,
-    },
-    to: customer.email,
+    username: tenant.settings.smtpUsername!,
+    password: decryptSecret(tenant.settings.smtpPasswordEncrypted!),
+    fromEmail: tenant.settings.smtpFromEmail!,
+    fromName: tenant.settings.smtpFromName || tenant.businessName,
+    toEmail: customer.email,
     subject: subject.trim(),
     text: message.trim(),
-    replyTo: tenant.settings.email || tenant.settings.smtpFromEmail!,
   })
 
   return NextResponse.json({ ok: true })
